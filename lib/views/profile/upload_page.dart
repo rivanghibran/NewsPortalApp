@@ -1,11 +1,15 @@
+// file: lib/views/profile/upload_page.dart
+
 import 'dart:io'; // Untuk File (Mobile)
 import 'dart:typed_data'; // Untuk Uint8List (Web)
-
+import '../../core/constants.dart';
 import 'package:flutter/foundation.dart'; // Untuk kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../auth/login_page.dart';
+// Import MainPage untuk navigasi reset ke Home setelah upload
+import '../main/main_page.dart'; 
 
 class UploadPage extends StatefulWidget {
   const UploadPage({super.key});
@@ -72,7 +76,14 @@ class _UploadPageState extends State<UploadPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Berita Berhasil Diupload"))
         );
-        Navigator.pop(context); // Kembali ke Home dan refresh
+        
+        // --- NAVIGASI RESET KE HOME ---
+        // Karena UploadPage ada di dalam Tab Bar, kita tidak bisa pakai Navigator.pop()
+        // Kita harus me-reset ke MainPage agar kembali ke tab Home (index 0)
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainPage()), 
+          (route) => false
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -88,8 +99,7 @@ class _UploadPageState extends State<UploadPage> {
   Future<void> _logout() async {
     await _apiService.logout();
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context, 
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()), 
       (route) => false
     );
@@ -170,7 +180,7 @@ class _UploadPageState extends State<UploadPage> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent, 
+                  backgroundColor: AppConstants.cnnRed, 
                   foregroundColor: Colors.white
                 ),
                 child: _isLoading

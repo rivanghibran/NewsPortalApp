@@ -1,7 +1,7 @@
 // file: lib/services/api_service.dart
 
 import 'dart:convert';
-// Perlu import eksplisit File dan SocketException dari dart:io
+// Import File dan SocketException secara eksplisit
 import 'dart:io' show File, SocketException; 
 import 'dart:typed_data';
 
@@ -48,19 +48,23 @@ class ApiService {
       );
 
       print("LOGIN Status: ${response.statusCode}");
-      // print("LOGIN Body: ${response.body}"); // Tambahkan ini jika debug
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
         
-        // Passport menggunakan 'access_token' atau 'token'
+        // Ambil token (bisa 'access_token' atau 'token')
         final tokenKey = data['access_token'] ?? data['token']; 
         await prefs.setString('token', tokenKey ?? '');
 
         if (data['user'] != null) {
           final user = data['user'];
+          // Simpan ID user untuk fitur Profile
+          if (user['id'] != null) {
+             await prefs.setInt('userId', user['id']); 
+          }
           await prefs.setString('userName', user['name'] ?? 'Pengguna');
+          await prefs.setString('userEmail', user['email'] ?? '');
           
           // Penanganan is_official (biasanya 0/1 atau true/false)
           bool isOfficial = false;
@@ -111,7 +115,11 @@ class ApiService {
           
           if (data['user'] != null) {
             final user = data['user'];
+            if (user['id'] != null) {
+               await prefs.setInt('userId', user['id']);
+            }
             await prefs.setString('userName', user['name'] ?? 'Pengguna Baru');
+            await prefs.setString('userEmail', user['email'] ?? '');
              
             bool isOfficial = false;
             if (user['is_official'] != null) {
@@ -126,7 +134,6 @@ class ApiService {
       // Tangani Error Validasi (422) atau Error Server (500)
       final error = jsonDecode(response.body);
       if (error['errors'] != null && error['errors'] is Map) {
-          // Ambil pesan error pertama dari backend
           final firstError = error['errors'].values.first.first;
           throw Exception(firstError.toString());
       }
@@ -204,6 +211,9 @@ class ApiService {
   }
 
   /// 🖼️ Upload Berita (Membutuhkan Token)
+  /// Parameter [imageFile] bisa berupa:
+  /// - [Uint8List] (untuk Web)
+  /// - [File] (untuk Mobile/Desktop)
   Future<bool> uploadBerita(String judul, String isi, dynamic imageFile) async {
     final token = await _getToken();
     if (token == null) {
@@ -220,14 +230,14 @@ class ApiService {
 
     if (imageFile != null) {
       if (kIsWeb) {
+        // --- LOGIKA WEB ---
         if (imageFile is Uint8List) {
           request.files.add(http.MultipartFile.fromBytes('gambar', imageFile, filename: 'upload.png'));
         } else {
-             // Ini yang menyebabkan error sebelumnya jika file tidak dikonversi
             throw Exception("Tipe file tidak valid untuk Web (Diharapkan Uint8List).");
         }
       } else {
-        // Logika Mobile/Desktop
+        // --- LOGIKA MOBILE ---
         try {
             if (imageFile is File) {
                final imageFilePath = imageFile.path; 
@@ -235,11 +245,8 @@ class ApiService {
             } else {
                throw Exception("Tipe file tidak valid. Pastikan imageFile adalah dart:io.File.");
             }
-        } on NoSuchMethodError {
-             // Ini akan menangkap jika imageFile bukan File (misal null atau tipe lain)
-             throw Exception("Gagal membaca path file: imageFile bukan dart:io.File.");
         } catch (e) {
-             throw Exception("Gagal memproses file di Mobile: ${e.toString()}");
+             throw Exception("Gagal membaca file gambar: ${e.toString()}");
         }
       }
     }
@@ -252,10 +259,8 @@ class ApiService {
       return true;
     }
     
-    // Penanganan Error dari Backend (Validasi atau Server 500)
     try {
         final error = jsonDecode(parsed.body);
-        // Coba ambil pesan error dari key 'message' atau dari detail 'errors'
         final errorMessage = error['message'] ?? (error['errors']?.values.first.first);
         throw Exception(errorMessage ?? "Gagal mengunggah berita");
     } catch (_) {
@@ -267,13 +272,12 @@ class ApiService {
   Future<bool> postKomentar(int beritaId, String isi) async {
     final token = await _getToken();
     if (token == null) {
-      // Ini mengatasi error "Unauthenticated" jika token hilang
       throw Exception("Autentikasi diperlukan untuk berkomentar."); 
     }
 
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}/berita/$beritaId/komentar'),
-      headers: _getJsonHeaders(token: token), // Menggunakan helper header
+      headers: _getJsonHeaders(token: token),
       body: jsonEncode({'isi': isi}),
     );
 
