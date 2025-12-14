@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:newsportal_app/core/constants.dart';
 import '../../services/api_service.dart';
 import '../home/home_page.dart';
 
@@ -104,7 +105,7 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               const Text(
                 "Buat Akun Baru",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppConstants.cnnRed),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
@@ -154,7 +155,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: AppConstants.cnnRed,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
